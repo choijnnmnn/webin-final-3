@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>네모네모 서울 식물원</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/studio-freight/lenis@1.0.29/bundled/lenis.min.js"></script>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            overflow-x: hidden; 
+            background-color: #f0f0f0; 
+            overflow: hidden; 
+            transition: filter 0.5s; 
+        }
+
+        img { -webkit-user-drag: none; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+
+        /* [1] 초기 로딩 */
+        #preloader {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100vh;
+            background-color: #e8f5e9; 
+            z-index: 9999; 
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            will-change: opacity; 
+        }
+        .loader-text { font-family: 'Noto Sans KR', sans-serif; font-size: 1.2rem; color: #2e7d32; margin-bottom: 20px; font-weight: bold; }
+        .loader-percent { font-size: 4rem; font-weight: 900; color: #1b5e20; }
+        .loader-bar-bg { width: 300px; height: 4px; background: #c8e6c9; margin-top: 20px; border-radius: 2px; overflow: hidden; }
+        .loader-bar { width: 0%; height: 100%; background: #43a047; }
+
+        /* [NEW] 안내 패널 */
+        #scroll-guide {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100vh;
+            z-index: 9000; 
+            display: flex; justify-content: center; align-items: center;
+            pointer-events: none; 
+            opacity: 0; visibility: hidden; 
+        }
+        .guide-box {
+            background-color: rgba(0, 0, 0, 0.4); 
+            padding: 15px 30px;
+            border-radius: 50px;
+            backdrop-filter: blur(5px); 
+            animation: blink 2s infinite ease-in-out; 
+        }
+        .guide-text { color: #fff; font-family: 'Noto Sans KR', sans-serif; font-size: 1.1rem; font-weight: 500; letter-spacing: 1px; }
+        @keyframes blink {
+            0% { opacity: 0.4; transform: translateY(0); }
+            50% { opacity: 1; transform: translateY(-5px); } 
+            100% { opacity: 0.4; transform: translateY(0); }
+        }
+
+        /* [2] 중간 로딩 */
+        #interim-loader {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100vh;
+            background-color: #fff; 
+            z-index: 8000; 
+            opacity: 0; visibility: hidden; 
+            pointer-events: none; 
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+        }
+        .interim-text {
+            font-family: 'Noto Sans KR', serif; 
+            font-size: 1.5rem; color: #1b5e20;
+            letter-spacing: 5px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+
+        /* [Section 1] */
+        #global-background {
+            position: fixed; top: 0; left: 0; width: 140vw; height: 100vh;
+            z-index: 0; 
+            background-image: url('./images/section1_bg.webp'); 
+            background-size: cover; background-position: left center; 
+            will-change: transform, opacity, filter; 
+            -webkit-backface-visibility: hidden; backface-visibility: hidden; transform: translate3d(0, 0, 0);
+        }
+        #section1 { position: relative; width: 100%; height: 100vh; overflow: hidden; z-index: 10; background-color: transparent; will-change: opacity, filter; }
+        .layer { position: absolute; background-repeat: no-repeat;  transform: translate3d(0, 0, 0); }
+
+        .island-main { width: 75%; height: auto; aspect-ratio: 16/9; left: -0%; bottom: -10%; background-size: cover; background-position: left bottom; background-image: url('./images/section1_mainblock.webp'); z-index: 4; }
+        .greenhouse-far { width: 65%; height: auto; aspect-ratio: 16/9; right: 0%; top: 0%; background-size: cover; background-position: right top; background-image: url('./images/section1_farplanet.webp'); z-index: 3; }
+        .water-cube { width: 50%; height: auto; aspect-ratio: 1/1; right: 0%; top: 20%; background-size: contain; background-image: url('./images/section1_waterblock.webp'); z-index: 5; }
+        .island-small { width: 30%; height: auto; aspect-ratio: 4/3; left: 5%; top: 20%; background-size: contain; background-image: url('./images/section1_mainclose.webp'); z-index: 6; }
+        .cloud-far-1 { width: 100%; height: auto; aspect-ratio: 3/2; left: 5%; top: 5%; background-size: contain; background-image: url('./images/section1_farcloud1.webp'); z-index: 1; }
+        .cloud-far-2 { width: 100%; height: auto; aspect-ratio: 3/2; right: 35%; top: 10%; background-size: contain; background-image: url('./images/section1_farcloud2.webp'); z-index: 1; }
+        .block-close { width: 50%; height: auto; aspect-ratio: 1/1; right: 0%; bottom: 5%; background-size: contain; background-image: url('./images/section1_closeblock.webp'); z-index: 7; }
+        .cloud-close { width: 50%; height: auto; aspect-ratio: 2/1; left: -5%; bottom: 25%; background-size: contain; background-image: url('./images/section1_closecloud.webp'); z-index: 6; }
+        .deco { position: absolute; background-size: contain; background-repeat: no-repeat; background-position: center; transform: translate3d(0, 0, 0); }
+        .bush { width: 60%; height: 60%; top: -10%; left: 23%; background-image: url('./images/section1_bush.webp'); z-index: 5; }
+        .water-float { width: 78%; height: 78%; top: -8%; right: 12%; background-image: url('./images/section1_waterblockfloat.webp'); z-index: 6; }
+        .water-cloud { width: 20%; height: 50%; top: -10%; right: -10%; background-image: url('./images/section1_closecloud2.webp'); z-index: 7; opacity: 0.9; }
+        .water-cloud2 { width: 30%; height:30%; top: 28%; right:5%; background-image: url('./images/section1_closecloud2.webp'); z-index: 1; opacity: 0.9; }
+
+        /* [Section 2] */
+        #section2 { 
+            position: relative; width: 100%; height: 100vh;
+            background-color: #7ccad4; 
+            overflow: hidden; 
+            opacity: 0; visibility: hidden; 
+            display: flex; justify-content: flex-start; align-items: flex-start;
+            z-index: 50; 
+        }
+
+        .h-scroll-track { display: flex; height: 100%; width: fit-content; margin: 0; padding: 0; position: relative; }
+        
+        .h-bg-image, .tree-img, .ground-img, .grass-img, .rock-img, .palm-img, .hanok-img, .woodpad-img, .giwa-img {
+            height: 100vh; width: auto; max-width: none; display: block; flex-shrink: 0; object-fit: cover; transform: translate3d(0, 0, 0);
+        }
+
+        .h-center-layer { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: auto; height: 100%; pointer-events: none; z-index: 2; }
+        .hanok-img { height: auto; width: 70vw; margin-top: 0vh; }
+        .h-midground-layer { position: absolute; top: 0; left: 0; width: 100%; height:  auto; pointer-events: none; z-index: 3; }
+        .tree-img { transform-origin: bottom center; }
+        .h-ground-layer { position: absolute; top: 0; left: 0; width: 100%; height: auto; pointer-events: none; z-index: 4; }
+        .h-foreground-layer { position: absolute; top: 0; left: 0; width: 100%; height: auto; pointer-events: none; z-index: 5; }
+        .grass-img { transform-origin: bottom center; }
+        
+        .h-step-layer { position: absolute; top: 62%; left: 17%; width: 100%; height:  auto; pointer-events: none; z-index: 7; }
+        .h-giwa-layer { position: absolute; top: 10%; left: 55%; width: 100%; height:  auto; pointer-events: none; z-index: 7; }
+        .giwa-wrapper { position: absolute; width: 100%; height: 100%; top: 0; left: 0; }
+        .woodpad-img, .giwa-img { position: absolute; top: 0; left: 0; width: 100%; height:  auto; object-fit: cover; }
+
+        .h-static-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 6; }
+        .h-palm-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 8; }
+        .palm-left { position: absolute;  width: 70%; height: auto;left: 0; bottom: 0; transform-origin: left top; }
+        .palm-right { position: absolute; width: 50%; height: auto; right: 0; top: 0; transform-origin: right top; }
+        .h-content-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+
+        .h-step-layer .woodpad-img:nth-child(1) {  width: 20%; height: auto;left: 0%; bottom: 0%; }
+        .h-step-layer .woodpad-img:nth-child(2) {  width: 20%; height: auto;left: 3%; bottom: 2%; }
+        .h-step-layer .woodpad-img:nth-child(3) {  width: 20%; height: auto;left: 6%; bottom: 4%; }
+
+        .h-giwa-layer .giwa-wrapper:nth-child(1) { width: 20%; height: auto; left: 9%; bottom: 2%; }
+        .h-giwa-layer .giwa-wrapper:nth-child(2) { width: 20%; height: auto; left: 12%; bottom: 5%; }
+        .h-giwa-layer .giwa-wrapper:nth-child(3) {  width: 20%; height: auto;left: 15%; bottom: 3%; }
+
+
+        /* [Section 3] 세로 스크롤 스타일 */
+        #section3 {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+            background-color: #fff; 
+            z-index: 60; 
+        }
+
+        .v-scroll-track {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            display: flex;
+            justify-content: center;
+        }
+
+        .v-bg-image {
+            width: 100%;
+            height: auto; 
+            min-height: 120vh; 
+            display: block;
+            object-fit: cover;
+            position: absolute;
+            bottom: 0; 
+            will-change: transform;
+        }
+
+        .v-objects {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 2; 
+        }
+
+        /* 블록 스타일 */
+        .block-1f { position: absolute; right: 0%; bottom: 0%; width: 100vw; height: auto; transform-origin: center bottom; }
+        .block-2f { position: absolute; right: 0%; bottom: 0%; width: 100vw; height: auto; transform-origin: center bottom; z-index: 3; }
+        .block-3f { position: absolute; left: 0%; bottom: 0%; width: 100vw; height: auto; transform-origin: center bottom; z-index: 4; }
+        
+        /* 계단 스타일 */
+        .stairs-img { position: absolute; width: 60vw; height: auto; z-index: 4; transform-origin: center center; }
+        .stair-1 { left: 47%; bottom: 190%; }
+        .stair-2 { left: 47%; bottom: 180%; }
+        .stair-3 { left: 47%; bottom: 180%; }
+        .stair-4 { left: 47%; bottom: 180%; }    
+
+        /* 4층 그룹 */
+        .group-4f { position: absolute; right: 20%; bottom: 0%; width: 90vw; height: auto; z-index: 5; }
+        .block-4f { width: 100%; display: block; }
+        .flower-img { position: absolute; width: 65%; right: 32%; top: 36%; z-index: 6; transform-origin: bottom center; } 
+        .leaf-img { position: absolute; width: 60%; right: 30%; top: 38%; z-index: 6; transform-origin: center center; }
+
+        /* 5층 건물 */
+        .block-5f { position: absolute; left: 10%; bottom: 0%; width: 100vw; height: auto; z-index: 10; transform-origin: center bottom; }
+
+        /* 6층 건물 */
+        .block-6f { position: absolute; left: 15%; bottom: 330%; width: 100vw; height: auto; z-index: 11; transform-origin: center bottom; }
+
+        /* 7층 그룹 */
+        .group-7f { position: absolute; right: 15%; bottom: 420%; width: 100vw; height: auto; z-index: 12; transform-origin: center bottom; }
+        .block-7f { width: 100%; display: block; }
+        .leaf-7f-img { position: absolute; width: 100%; left: 0%; top: 5%; z-index: 13; transform-origin: center center; }
+        .flower-7f-img { position: absolute; width: 100%; left: 0%; top: 0%; z-index: 14; transform-origin: bottom center; }
+
+        /* [NEW] 지도(네비게이터) 스타일 */
+        #map-controls {
+            position: fixed; top: 20px; right: 170px; z-index: 9999;
+        }
+        #map-toggle-btn {
+            background: rgba(46, 125, 50, 0.9);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-family: 'Noto Sans KR', sans-serif;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #fff;
+            transition: 0.3s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        #map-toggle-btn:hover { background: #1b5e20; transform: scale(1.05); }
+
+        #map-panel {
+            position: fixed; top: 70px; right: 20px;
+            width: 320px; /* 1.5배 넓힘 */
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            z-index: 9998;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transform: translateY(-20px); opacity: 0; visibility: hidden;
+            transition: 0.4s ease;
+        }
+        #map-panel.active { transform: translateY(0); opacity: 1; visibility: visible; }
+        
+        .map-container {
+            position: relative; width: 100%; height: 60px;
+            margin: 10px 0;
+        }
+        .map-svg {
+            width: 100%; height: 100%;
+            overflow: visible;
+        }
+        /* 배경 경로 (연두색) */
+        .track-bg {
+            fill: none; stroke: #c8e6c9; stroke-width: 6; stroke-linecap: round;
+        }
+        /* 진행 경로 (진한 초록색) */
+        .track-progress {
+            fill: none; stroke: #2e7d32; stroke-width: 6; stroke-linecap: round;
+            stroke-dasharray: 1000; stroke-dashoffset: 1000; /* JS로 제어 */
+        }
+        /* 점 (Station) */
+        .map-point {
+            fill: #fff; stroke: #2e7d32; stroke-width: 3;
+        }
+        /* 나뭇잎 마커 */
+        .map-leaf-marker {
+            position: absolute; top: 0; left: 0;
+            font-size: 1.5rem;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            transition: top 0.1s linear, left 0.1s linear; /* 부드러운 이동 */
+        }
+        .map-labels {
+            display: flex; justify-content: space-between;
+            font-size: 0.8rem; font-weight: bold; color: #1b5e20;
+            margin-top: 5px; padding: 0 5px;
+        }
+
+        /* 사운드 버튼 */
+        #sound-controls { position: fixed; top: 20px; right: 20px; z-index: 9999; }
+        #sound-btn { background: rgba(255, 255, 255, 0.8); border: 1px solid #ddd; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-family: 'Noto Sans KR', sans-serif; font-size: 0.9rem; font-weight: bold; transition: 0.3s; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        #sound-btn:hover { background: #fff; transform: scale(1.05); }
+
+        /* 나레이션 자막 */
+        #narration-box { position: fixed; bottom: 50px; left: 50%; transform: translateX(-50%); z-index: 10000; background-color: rgba(0, 0, 0, 0.6); padding: 15px 40px; border-radius: 50px; backdrop-filter: blur(5px); pointer-events: none; transition: opacity 0.5s, transform 0.5s; text-align: center; width: max-content; max-width: 90%; }
+        .narration-text { color: #fff; font-family: 'Noto Sans KR', sans-serif; font-size: 1.2rem; font-weight: 500; margin: 0; line-height: 1.4; white-space: nowrap; }
+        @media (max-width: 768px) { .narration-text { font-size: 1rem; white-space: normal; } #narration-box { padding: 10px 20px; bottom: 30px; } }
+
+        /* 엔딩 화면 스타일 */
+        #ending-screen {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100vh;
+            z-index: 20000; 
+            display: flex; justify-content: center; align-items: center;
+            background-color: rgba(255, 255, 255, 0.6); 
+            backdrop-filter: blur(15px); 
+            opacity: 0; visibility: hidden;
+            transition: opacity 1s ease;
+        }
+
+        .ending-content {
+            text-align: center;
+            transform: translateY(20px);
+            transition: transform 1s ease;
+        }
+
+        .ending-message {
+            font-family: 'Noto Sans KR', serif;
+            font-size: 2rem;
+            font-weight: bold;
+            color: #1b5e20;
+            margin-bottom: 40px;
+            line-height: 1.5;
+            text-shadow: 0 2px 10px rgba(255,255,255,0.8);
+        }
+
+        #restart-btn {
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            background-color: #2e7d32;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(46, 125, 50, 0.4);
+            transition: transform 0.3s, background-color 0.3s;
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+
+        #restart-btn:hover {
+            background-color: #1b5e20;
+            transform: scale(1.05);
+        }
+
+        /* 엔딩 활성화 시 클래스 */
+        .blur-mode #wrapper, .blur-mode #section2, .blur-mode .v-scroll-track {
+            filter: blur(5px);
+            transition: filter 1s;
+        }
+        .blur-mode #narration-box { opacity: 0 !important; transition: 0.5s; }
+        .show-ending { opacity: 1 !important; visibility: visible !important; }
+
+    </style>
+</head>
+<body>
+    <div id="map-controls">
+        <button id="map-toggle-btn">🗺️ Map</button>
+    </div>
+    <div id="map-panel">
+        <div class="map-container">
+            <svg class="map-svg" viewBox="0 0 300 60" preserveAspectRatio="none">
+                <path d="M 10 50 L 150 10 L 290 50" class="track-bg" />
+                <path d="M 10 50 L 150 10 L 290 50" class="track-progress" id="track-path" />
+                
+                <circle cx="10" cy="50" r="6" class="map-point" />
+                <circle cx="150" cy="10" r="6" class="map-point" />
+                <circle cx="290" cy="50" r="6" class="map-point" />
+            </svg>
+            <div class="map-leaf-marker">🌿</div>
+        </div>
+        <div class="map-labels">
+            <span>열린숲</span>
+            <span>주제정원</span>
+            <span>온실</span>
+        </div>
+    </div>
+
+    <div id="sound-controls">
+        <button id="sound-btn">🔇 Sound OFF</button>
+    </div>
+    
+    <div id="narration-box">
+        <p class="narration-text">네모네모 서울 식물원 탐험을 시작합니다.</p>
+    </div>
+
+    <audio id="main-bgm" src="./sounds/bgm_main.mp3" loop preload="auto"></audio>
+
+    <div id="preloader">
+        <div class="loader-text"> 준비 중...</div>
+        <div class="loader-percent">0%</div>
+        <div class="loader-bar-bg">
+            <div class="loader-bar"></div>
+        </div>
+    </div>
+
+    <div id="scroll-guide">
+        <div class="guide-box">
+            <span class="guide-text">마우스를 천천히 스크롤해보세요!</span>
+        </div>
+    </div>
+
+    <div id="interim-loader">
+        <div class="interim-text">한국 정원 로딩중...<br>계속 스크롤 해주세요!</div>
+    </div>
+
+    <div id="global-background"></div>
+
+    <div id="wrapper">
+        <section id="section1">
+            <div class="layer cloud-far-1"></div>
+            <div class="layer cloud-far-2"></div>
+            <div class="layer greenhouse-far"></div> 
+            <div class="layer island-main">
+                <div class="deco bush"></div>
+            </div>
+            <div class="layer island-small"></div>
+            <div class="layer water-cube">
+                <div class="deco water-float"></div>
+                <div class="deco water-cloud"></div> 
+                 <div class="deco water-cloud2"></div> 
+            </div>
+            <div class="layer cloud-close"></div>
+            <div class="layer block-close"></div>
+        </section>
+    </div>
+
+    <section id="section2" class="next-section">
+        <div class="h-scroll-track">
+            <img src="./images/section2_bg.jpg" class="h-bg-image" alt="Background" loading="eager" decoding="async">
+            <div class="h-center-layer"><img src="./images/section2_hanok.webp" class="hanok-img" alt="Hanok" loading="eager" decoding="async"></div>
+            <div class="h-midground-layer"><img src="./images/section2_tree.webp" class="tree-img" alt="Pine Trees" loading="eager" decoding="async"></div>
+            <div class="h-ground-layer"><img src="./images/section2_grassground.webp" class="ground-img" alt="Ground Mask" loading="eager" decoding="async"></div>
+            <div class="h-foreground-layer"><img src="./images/section2_grass.webp" class="grass-img" alt="Grass" loading="eager" decoding="async"></div>
+            <div class="h-step-layer">
+                <img src="./images/section2_woodpad1.webp" class="woodpad-img" alt="Wood Step 1" loading="eager" decoding="async">
+                <img src="./images/section2_woodpad2.webp" class="woodpad-img" alt="Wood Step 2" loading="eager" decoding="async">
+                <img src="./images/section2_woodpad3.webp" class="woodpad-img" alt="Wood Step 3" loading="eager" decoding="async">
+            </div>
+            <div class="h-giwa-layer">
+                <div class="giwa-wrapper">
+                    <img src="./images/section2_giwa1.webp" class="giwa-img" alt="Giwa Step 1" loading="eager" decoding="async">
+                </div>
+                <div class="giwa-wrapper">
+                    <img src="./images/section2_giwa2.webp" class="giwa-img" alt="Giwa Step 2" loading="eager" decoding="async">
+                </div>
+                <div class="giwa-wrapper">
+                    <img src="./images/section2_giwa3.webp" class="giwa-img" alt="Giwa Step 3" loading="eager" decoding="async">
+                </div>
+            </div>
+            <div class="h-static-layer"><img src="./images/section2_rock.webp" class="rock-img" alt="Static Rocks" loading="eager" decoding="async"></div>
+            <div class="h-palm-layer">
+                <img src="./images/section2_palmleft.webp" class="palm-img palm-left" alt="Palm Left" loading="eager" decoding="async">
+                <img src="./images/section2_palmright.webp" class="palm-img palm-right" alt="Palm Right" loading="eager" decoding="async">
+            </div>
+            <div class="h-content-layer"></div>
+        </div>
+    </section>
+
+    <section id="section3">
+        <div class="v-scroll-track">
+            <img src="./images/section3_bg.jpg" class="v-bg-image" alt="Vertical Scroll Background" loading="eager" decoding="async">
+            
+            <div class="v-objects">
+                <img src="./images/section3_1f.webp" class="block-1f" alt="1st Floor" loading="lazy" decoding="async">
+                <img src="./images/section3_2f.webp" class="block-2f" alt="2nd Floor" loading="lazy" decoding="async">
+                <img src="./images/section3_3f.webp" class="block-3f" alt="3rd Floor" loading="lazy" decoding="async">
+                
+                <img src="./images/section3_4stairs1.webp" class="stairs-img stair-1" alt="Stair 1" loading="lazy" decoding="async">
+                <img src="./images/section3_4stairs2.webp" class="stairs-img stair-2" alt="Stair 2" loading="lazy" decoding="async">
+                <img src="./images/section3_4stairs3.webp" class="stairs-img stair-3" alt="Stair 3" loading="lazy" decoding="async">
+                <img src="./images/section3_4stairs4.webp" class="stairs-img stair-4" alt="Stair 4" loading="lazy" decoding="async">
+                
+                <div class="group-4f">
+                    <img src="./images/section3_4f.webp" class="block-4f" alt="4th Floor" loading="lazy" decoding="async">
+                    <img src="./images/section3_4leaf.webp" class="leaf-img" alt="Lotus Leaf" loading="lazy" decoding="async">
+                    <img src="./images/section3_4flower.webp" class="flower-img" alt="Lotus Flower" loading="lazy" decoding="async">
+                </div>
+
+                <img src="./images/section3_5f.webp" class="block-5f" alt="5th Floor" loading="lazy" decoding="async">
+                <img src="./images/section3_6f.webp" class="block-6f" alt="6th Floor" loading="lazy" decoding="async">
+                
+                <div class="group-7f">
+                    <img src="./images/section3_7f.webp" class="block-7f" alt="7th Floor" loading="lazy" decoding="async">
+                    <img src="./images/section3_7leaf.webp" class="leaf-7f-img" alt="7th Floor Leaf" loading="lazy" decoding="async">
+                    <img src="./images/section3_7flower.webp" class="flower-7f-img" alt="7th Floor Flower" loading="lazy" decoding="async">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div id="ending-screen">
+        <div class="ending-content">
+            <p class="ending-message">서울 식물원을 방문하셔서<br>오늘 본 정원들을 직접 만나보세요!</p>
+            <button id="restart-btn">처음으로</button>
+        </div>
+    </div>
+
+   <script>
+
+        // GSAP 설정
+        gsap.config({ force3D: false });
+        const lenis = new Lenis({
+            duration: 1.2, easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), direction: 'vertical', gestureDirection: 'vertical', smooth: true, mouseMultiplier: 1, smoothTouch: false, touchMultiplier: 2,
+        });
+        lenis.on('scroll', ScrollTrigger.update);
+        gsap.ticker.add((time) => { lenis.raf(time * 1000); });
+        gsap.ticker.lagSmoothing(0);
+        gsap.registerPlugin(ScrollTrigger);
+
+        // 로딩 바
+        let loadedCount = { val: 0 };
+        gsap.to(loadedCount, {
+            val: 100, duration: 2, ease: "power1.inOut",
+            onUpdate: function() {
+                document.querySelector(".loader-percent").innerText = Math.floor(loadedCount.val) + "%";
+                document.querySelector(".loader-bar").style.width = Math.floor(loadedCount.val) + "%";
+            },
+            onComplete: function() { checkLoadAndStart(); }
+        });
+
+        let isWindowLoaded = false;
+        window.addEventListener("load", () => {
+            isWindowLoaded = true;
+            checkLoadAndStart();
+        });
+
+        function checkLoadAndStart() {
+            if (loadedCount.val >= 100 && isWindowLoaded) {
+                // 통합 초기화 로직 실행
+                initAll();
+                
+                gsap.to("#preloader", {
+                    autoAlpha: 0, duration: 1,
+                    onComplete: () => {
+                        gsap.to("#scroll-guide", { autoAlpha: 1, duration: 1 });
+                        document.body.style.overflow = "auto";
+                        document.body.style.overflowX = "hidden"; 
+                        ScrollTrigger.refresh();
+                    }
+                });
+            }
+        }
+
+        ScrollTrigger.create({
+            start: 5, once: true,
+            onEnter: () => { gsap.to("#scroll-guide", { autoAlpha: 0, duration: 0.5 }); }
+        });
+
+        // =================================================================
+        // [나레이션 & 사운드 & 엔딩 & 지도 통합 로직]
+        // =================================================================
+        
+        const narrationBox = document.querySelector("#narration-box");
+        const narrationText = document.querySelector(".narration-text");
+        const bgm = document.getElementById("main-bgm");
+        const soundBtn = document.getElementById("sound-btn");
+        const endingScreen = document.getElementById("ending-screen");
+        const restartBtn = document.getElementById("restart-btn");
+        
+        // 지도 관련 요소
+        const mapToggleBtn = document.getElementById("map-toggle-btn");
+        const mapPanel = document.getElementById("map-panel");
+        const trackPath = document.getElementById("track-path");
+        const mapLeafMarker = document.querySelector(".map-leaf-marker");
+
+        let isSoundOn = false;
+        let isMapOpen = false;
+
+        // 사운드 초기화
+        if(bgm) bgm.volume = 0;
+        if (soundBtn && bgm) {
+            soundBtn.addEventListener("click", () => {
+                isSoundOn = !isSoundOn; 
+                if (isSoundOn) {
+                    soundBtn.innerText = "🔊 Sound ON";
+                    bgm.play().catch(e => console.log("재생 권한 필요")); 
+                    gsap.to(bgm, { volume: 0.5, duration: 2 }); 
+                } else {
+                    soundBtn.innerText = "🔇 Sound OFF";
+                    gsap.to(bgm, { volume: 0, duration: 1, onComplete: () => bgm.pause() });
+                }
+            });
+        }
+
+        // 지도 토글 기능
+        if (mapToggleBtn && mapPanel) {
+            mapToggleBtn.addEventListener("click", () => {
+                isMapOpen = !isMapOpen;
+                if(isMapOpen) mapPanel.classList.add("active");
+                else mapPanel.classList.remove("active");
+            });
+        }
+
+        // 나레이션 교체 함수
+        function updateNarration(text) {
+            if (!text || narrationText.innerText === text) return; 
+            gsap.to(narrationBox, { 
+                opacity: 0, y: 10, duration: 0.3, 
+                onComplete: () => {
+                    narrationText.innerText = text;
+                    gsap.to(narrationBox, { opacity: 1, y: 0, duration: 0.3 });
+                }
+            });
+        }
+
+        // 처음으로 버튼
+        restartBtn.addEventListener("click", () => {
+            endingScreen.classList.remove("show-ending");
+            document.body.classList.remove("blur-mode");
+            lenis.scrollTo(0, { duration: 2 });
+            updateNarration("네모네모 서울 식물원 탐험을 시작합니다.");
+        });
+
+
+        // =================================================================
+        // [통합 초기화 함수]
+        // =================================================================
+        function initAll() {
+            
+            // 지도 초기화 (SVG 선 그리기 준비)
+            const pathLength = trackPath.getTotalLength();
+            trackPath.style.strokeDasharray = pathLength;
+            trackPath.style.strokeDashoffset = pathLength;
+
+            // 지도 업데이트 함수 (진행률 0~100)
+            function updateMapProgress(percent) {
+                // 1. 선 그리기
+                const drawLength = pathLength * (percent / 100);
+                trackPath.style.strokeDashoffset = pathLength - drawLength;
+
+                // 2. 나뭇잎 마커 이동 (꺾인 선 따라가기)
+                // 0~50% : (10,50) -> (150,10)
+                // 50~100%: (150,10) -> (290,50)
+                let tx, ty;
+                if (percent <= 50) {
+                    const localP = percent / 50; // 0~1
+                    tx = 10 + (140 * localP); // 10 -> 150
+                    ty = 50 - (40 * localP);  // 50 -> 10
+                } else {
+                    const localP = (percent - 50) / 50; // 0~1
+                    tx = 150 + (140 * localP); // 150 -> 290
+                    ty = 10 + (40 * localP);   // 10 -> 50
+                }
+                
+                // SVG 좌표를 %로 변환해서 마커 위치 잡기 (SVG viewBox가 300x60임)
+                mapLeafMarker.style.left = (tx / 300 * 100) + "%";
+                mapLeafMarker.style.top = (ty / 60 * 100) + "%";
+            }
+            
+            // 초기 위치 설정
+            updateMapProgress(0);
+
+
+            // [Section 1] 인트로 Timeline
+            const tl1 = gsap.timeline({
+                scrollTrigger: {
+                    trigger: "#wrapper", start: "top top", end: "+=1500%", pin: true, scrub: 1, anticipatePin: 1, 
+                    onUpdate: (self) => {
+                        const p = self.progress;
+                        if (p < 0.3) updateNarration("네모네모 서울 식물원 탐험을 시작합니다.");
+                        else if (p < 0.6) updateNarration("저 멀리 신비한 온실이 보이네요!");
+                        else updateNarration("가까이 다가가 볼까요?");
+                        
+                        // 지도: 0% ~ 50% 구간 (열린숲 -> 주제정원)
+                        updateMapProgress(p * 50);
+                    }
+                }
+            });
+
+            tl1.addLabel("start");
+            tl1.from(".island-main", { xPercent: -40, yPercent: 20, autoAlpha: 0, duration: 6, ease: "power2.out" }, "start")
+              .from(".greenhouse-far", { xPercent: 40, yPercent: -20, scale: 0.6, autoAlpha: 0, duration: 6, ease: "power2.out" }, "start+=0.5")
+              .from(".island-small", { yPercent: -100, autoAlpha: 0, duration: 5 }, "start+=1")
+              .from(".water-cube", { xPercent: 100, yPercent: 100, rotation: 0, duration: 5.5 }, "start+=1.5")
+              .from(".block-close", { xPercent: 50, duration: 4 }, "start+=2")
+              .from(".cloud-close", { xPercent: -200, autoAlpha: 0, duration: 5, ease: "power1.out"}, "start+=2")
+              .from(".cloud-far-1", { xPercent: -200, autoAlpha: 0, duration: 5, ease: "power1.out"}, "start+=2")
+              .from(".cloud-far-2", { yPercent: -50, autoAlpha: 0, duration: 4 }, "start+=2");
+
+            tl1.to("#section1", { scale: 2, xPercent: 25, yPercent: -25, duration: 10, ease: "power2.inOut" }, "+=1") 
+              .to("#global-background", { scale: 1.1, xPercent: 5, duration: 10 }, "<")
+              .to(".cloud-close", { xPercent: 20, yPercent: 30, duration: 10, ease: "power2.inOut" }, "<")
+              .to(".cloud-far-1", { xPercent: 30, yPercent: 0, duration: 10, ease: "power2.inOut" }, "<")
+              .to(".cloud-far-1", { xPercent: -10, yPercent: 0, duration: 7, ease: "power2.inOut" }, "<");
+
+            tl1.to("#section1", { scale: 2.2, xPercent: -45, yPercent: 10, duration: 7, ease: "power2.inOut" })
+              .to("#global-background", { xPercent: -5, duration: 7 }, "<")
+              .to(".cloud-close", { xPercent: -10, yPercent: 0, duration: 7, ease: "power2.inOut" }, "<")
+              .to(".cloud-far-1", { xPercent: -10, yPercent: 0, duration: 7, ease: "power2.inOut" }, "<");
+
+            tl1.to("#section1", { scale: 5, xPercent: -200, yPercent: 200, duration: 15, ease: "power2.in" })
+              .to("#global-background", { scale: 1.3, duration: 15 }, "<");
+
+            tl1.to("#interim-loader", { autoAlpha: 1, backgroundColor: "#ffffff", duration: 3 })
+              .to("#section1, #global-background", { filter: "blur(15px)", autoAlpha: 0, duration: 3 }, "<");
+            tl1.to({}, { duration: 1 });
+            tl1.to("#interim-loader", { backgroundColor: "#7ccad4", duration: 3 });
+            tl1.to(".interim-text", { autoAlpha: 0, duration: 1 });
+            tl1.set("#section2", { autoAlpha: 1 });
+            tl1.to("#interim-loader", { autoAlpha: 0, duration: 4 });
+
+            // Section 1 상시 애니메이션
+            gsap.to(".island-main", { y: 15, rotation: 1, duration: 4, yoyo: true, repeat: -1, ease: "sine.inOut" });
+            gsap.to(".greenhouse-far", { y: 20, rotation: -1, duration: 5, delay: 1, yoyo: true, repeat: -1, ease: "sine.inOut" });
+            gsap.to(".island-small", { y: -80, duration: 3, delay: 1, yoyo: true, repeat: -1, ease: "sine.inOut" });
+            gsap.to(".water-cube", { y: 15, rotation: 3, duration: 3, delay: 0.5, yoyo: true, repeat: -1, ease: "sine.inOut" });
+            gsap.to(".block-close", { y: 8, duration: 2.5, yoyo: true, repeat: -1, ease: "sine.inOut" });
+            gsap.to(".cloud-far-1", { x: 20, y: 5, duration: 6, yoyo: true, repeat: -1, ease: "sine.inOut" });
+            gsap.to(".cloud-far-2", { x: -20, y: 5, duration: 7, delay: 1, yoyo: true, repeat: -1, ease: "sine.inOut" });
+            gsap.to(".cloud-close", { x: 15, y: -5, duration: 5.5, delay: 2, yoyo: true, repeat: -1, ease: "sine.inOut" });
+            gsap.to(".water-float", { y: -10, rotation: 3, duration: 2.5, yoyo: true, repeat: -1, ease: "sine.inOut" });
+            gsap.to(".bush", { rotation: 5, scaleY: 0.9, transformOrigin: "bottom center", duration: 1.2, ease: "elastic.out(1.2, 0.4)", yoyo: true, repeat: -1 });
+            gsap.to(".water-cloud", { x: 10, y: -10, duration: 4, delay: 1, yoyo: true, repeat: -1, ease: "sine.inOut" });
+            gsap.to(".water-cloud2", { x: 15, y: -1, duration: 2, delay: 2, yoyo: true, repeat: -1, ease: "sine.inOut" });
+
+
+            // [Section 2 & 3] 로직
+            const section2 = document.querySelector("#section2");
+            const track = document.querySelector(".h-scroll-track");
+            const image = document.querySelector(".h-bg-image");
+            const section3 = document.querySelector("#section3");
+            const vImage = document.querySelector(".v-bg-image");
+
+            if(!track || !image || !vImage) return;
+
+            // 변수 설정
+            const sec2Duration = image.offsetWidth * 3.5; 
+            const sec3Duration = window.innerHeight * 15;
+
+            // [Section 2] 가로 스크롤
+            function getScrollAmount() {
+                return -(image.offsetWidth - window.innerWidth);
+            }
+
+            gsap.to(track, {
+                x: getScrollAmount, 
+                ease: "none",
+                scrollTrigger: {
+                    trigger: section2,
+                    start: "top top",
+                    end: () => "+=" + sec2Duration, 
+                    pin: true, scrub: 1, invalidateOnRefresh: true, anticipatePin: 1,
+                    onUpdate: (self) => {
+                        const p = self.progress;
+                        if (p < 0.4) updateNarration("온실로 향하는 길에 고즈넉한 한옥 정원에 도착했습니다.");
+                        else if (p < 0.9) updateNarration("기와와 소나무가 어우러진 풍경입니다. 한국적인 아름다움을 느껴보세요.");
+                        else updateNarration("이제 온실로 진입합니다. ");
+
+                        // 지도: 50% ~ 100% 구간 (주제정원 -> 온실)
+                        // Section 2 진행률(0~1)을 50~100 범위로 매핑
+                        updateMapProgress(50 + (p * 50));
+                    }
+                }
+            });
+
+            gsap.to(".h-giwa-layer", {
+                xPercent: -12, ease: "none",
+                scrollTrigger: { trigger: section2, start: "top top", end: () => "+=" + sec2Duration, scrub: 1 }
+            });
+            gsap.to(".h-step-layer", {
+                xPercent: -10, ease: "none",
+                scrollTrigger: { trigger: section2, start: "top top", end: () => "+=" + sec2Duration, scrub: 1 }
+            });
+
+            const entranceTl = gsap.timeline({
+                scrollTrigger: {
+                    trigger: section2, start: "top top", end: () => "+=" + window.innerWidth * 0.75, scrub: 1,
+                }
+            });
+            entranceTl.from(".tree-img", { yPercent: 100, ease: "power2.out", duration: 1 }, 0)
+                      .from(".hanok-img", { yPercent: -50, autoAlpha: 0, ease: "power2.out", duration: 1 }, 0)
+                      .from(".woodpad-img", { yPercent: 200, autoAlpha: 0, stagger: 0.2, ease: "power2.out", duration: 1 }, 0)
+                      .from(".palm-left", { xPercent: -100, ease: "power2.out", duration: 1 }, 0);
+
+            gsap.from(".giwa-wrapper", { 
+                yPercent: -200, autoAlpha: 0, stagger: 0.25, ease: "power2.out", duration: 1,
+                scrollTrigger: {
+                    trigger: section2,
+                    start: () => "top top+=" + (image.offsetWidth * 0.075), 
+                    end: () => "+=" + window.innerWidth * 0.5,
+                    scrub: 1,
+                }
+            });
+
+            gsap.to(".giwa-img", { y: 6, duration: 3, ease: "sine.inOut", yoyo: true, repeat: -1, stagger: { each: 0.3, from: "start" } });
+            gsap.fromTo(".grass-img", { skewX: -3, scaleY: 1 }, { skewX: 3, scaleY: 0.98, duration: 3.5, repeat: -1, yoyo: true, ease: "sine.inOut", transformOrigin: "bottom center" });
+            gsap.fromTo(".tree-img", { skewX: -1.5 }, { skewX: 1.5, duration: 5, repeat: -1, yoyo: true, ease: "sine.inOut", transformOrigin: "bottom center" });
+            gsap.to(".palm-img", { rotation: 1.5, scale: 1.02, duration: 2, ease: "sine.inOut", yoyo: true, repeat: -1 });
+            gsap.to(".hanok-img", { y: 15, duration: 4, ease: "sine.inOut", yoyo: true, repeat: -1 });
+            gsap.to(".woodpad-img", { y: 8, duration: 2.5, ease: "sine.inOut", yoyo: true, repeat: -1, stagger: { each: 0.3, from: "start" } });
+
+
+            // [Section 3] 세로 적층
+            function getVerticalScrollAmount() {
+                return vImage.offsetHeight - window.innerHeight;
+            }
+
+            gsap.to(".v-bg-image, .v-objects", {
+                y: getVerticalScrollAmount, ease: "none",
+                scrollTrigger: {
+                    trigger: section3, start: "top top", end: () => "+=" + sec3Duration, 
+                    pin: true, scrub: 1, invalidateOnRefresh: true, anticipatePin: 1,
+                    onUpdate: (self) => {
+                        const p = self.progress;
+                        if (p < 0.15) updateNarration("온실 속 온대림의 탑에 도착했습니다.");
+                        else if (p < 0.3) updateNarration("온대림의 탑에선 아름다운 연꽃 정원이 피어납니다.");
+                        else if (p < 0.5) updateNarration("계단을 타고 연꽃 정원으로 올라가봅시다.");
+                        else if (p < 0.7) updateNarration("거대한 연잎 발판을 타고 올라가 보세요!");
+                        else if (p < 0.9) updateNarration("온대림의 탑 정상에 도착했습니다. 연꽃의 향기를 느껴보세요.");
+                        else updateNarration(""); // 엔딩 진입 시 자막 숨김
+
+                        // 지도: Section 3에서는 이미 온실에 도착했으므로 100% 유지
+                        updateMapProgress(100);
+                    },
+                    // [NEW] 엔딩 화면 트리거
+                    onLeave: () => {
+                        endingScreen.classList.add("show-ending");
+                        document.body.classList.add("blur-mode");
+                    },
+                    onEnterBack: () => {
+                        endingScreen.classList.remove("show-ending");
+                        document.body.classList.remove("blur-mode");
+                    }
+                }
+            });
+
+            // 1~3층
+            gsap.from(".block-1f, .block-2f", {
+                xPercent: 100, yPercent: 100, autoAlpha: 0, duration: 1.5, stagger: 0.2, ease: "power3.out", 
+                scrollTrigger: { trigger: section3, start: "top top", toggleActions: "play none none reverse" }
+            });
+            gsap.from(".block-3f", {
+                xPercent: -100, yPercent: 100, autoAlpha: 0, duration: 1.5, delay: 0.3, ease: "power3.out",
+                scrollTrigger: { trigger: section3, start: "top top", toggleActions: "play none none reverse" }
+            });
+
+            // 4층
+            gsap.from(".group-4f", {
+                xPercent: 100, yPercent: -100, autoAlpha: 0, duration: 1.8, delay: 2.5, ease: "power3.out",
+                scrollTrigger: { trigger: section3, start: "top top", toggleActions: "play none none reverse" }
+            });
+
+            // 계단
+            const stairs = gsap.utils.toArray(".stairs-img");
+            stairs.forEach((stair, i) => {
+                gsap.from(stair, { 
+                    x: 50, autoAlpha: 0, duration: 0.4, ease: "power2.out", delay: 2.5 + (i * 0.15),
+                    scrollTrigger: { trigger: section3, start: "top top", toggleActions: "play none none reverse" }
+                });
+                gsap.to(stair, {
+                    y: -20, duration: 0.25, ease: "power1.out", yoyo: true, repeat: -1, repeatDelay: 0.5, delay: 3.0 + (i * 0.15) 
+                });
+            });
+
+            // 부유 효과
+            gsap.to(".block-1f", { y: 10, duration: 4, ease: "sine.inOut", yoyo: true, repeat: -1 });
+            gsap.to(".block-2f", { y: 15, rotation: 1, duration: 3.2, ease: "sine.inOut", yoyo: true, repeat: -1, delay: 0.5 });
+            gsap.to(".block-3f", { y: 20, rotation: -1.5, duration: 2.8, ease: "sine.inOut", yoyo: true, repeat: -1, delay: 1 });
+            gsap.to(".group-4f", { y: 25, rotation: 2, duration: 3.5, ease: "sine.inOut", yoyo: true, repeat: -1, delay: 4.5 });
+
+            // 4층 연꽃/연잎
+            gsap.from(" .leaf-img", {
+                scale: 0, autoAlpha: 0, duration: 1.2, delay: 5, ease: "elastic.out(1, 0.5)", stagger: 0.2,
+                scrollTrigger: { trigger: section3, start: "top top", toggleActions: "play none none reverse" }
+            });
+            gsap.to(".flower-img", {
+                scale: 1.08, rotation: 2, duration: 2, ease: "sine.inOut", yoyo: true, repeat: -1
+            });
+
+            // 5층
+            gsap.from(".block-5f", {
+                yPercent: -150, autoAlpha: 0, duration: 3.0, delay: 4.5, ease: "power2.out", 
+                scrollTrigger: { trigger: section3, start: "top top", toggleActions: "play none none reverse" }
+            });
+            gsap.to(".block-5f", {
+                y: 30, rotation: 1.5, duration: 5, ease: "sine.inOut", yoyo: true, repeat: -1, delay: 6.5
+            });
+
+            // 6층
+            gsap.from(".block-6f", {
+                yPercent: -150, autoAlpha: 0, duration: 3.0, delay: 6.0, ease: "power2.out", 
+                scrollTrigger: { trigger: section3, start: "top top", toggleActions: "play none none reverse" }
+            });
+            gsap.to(".block-6f", {
+                y: 15, rotation: -1.5, duration: 4.5, ease: "sine.inOut", yoyo: true, repeat: -1, delay: 8.0
+            });
+
+            // 7층 그룹
+            gsap.from(".group-7f", {
+                yPercent: -150, autoAlpha: 0, duration: 3.0, delay: 9.0, ease: "power2.out", 
+                scrollTrigger: { trigger: section3, start: "top top", toggleActions: "play none none reverse" }
+            });
+            gsap.to(".group-7f", {
+                y: 15, rotation: 1.5, duration: 4.5, ease: "sine.inOut", yoyo: true, repeat: -1, delay: 11.0
+            });
+            gsap.from(".leaf-7f-img", {
+                scale: 0, autoAlpha: 0, duration: 1.2, delay: 11.0, ease: "elastic.out(1, 0.5)", 
+                scrollTrigger: { trigger: section3, start: "top top", toggleActions: "play none none reverse" }
+            });
+            gsap.to(".leaf-7f-img", {
+                x: 5, rotation: 3, duration: 3, ease: "sine.inOut", yoyo: true, repeat: -1, delay: 0.5
+            });
+            gsap.from(".flower-7f-img", {
+                scale: 1, autoAlpha: 0, duration: 1.0, delay: 11.0, ease: "power2.out", 
+                scrollTrigger: { trigger: section3, start: "top top", toggleActions: "play none none reverse" }
+            });
+            gsap.to(".flower-7f-img", {
+                scale: 1.08, rotation: 2, duration: 2, ease: "sine.inOut", yoyo: true, repeat: -1
+            });
+        
+        } // End initAll
+
+    </script>
+</body>
+</html>
